@@ -1,3 +1,2 @@
-data/test/*
-data/train/**/*
-model/**
+**/node_modules/*
+data/*
