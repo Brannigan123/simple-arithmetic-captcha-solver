@@ -1,7 +1,12 @@
-TRAIN_DATA_PATH = 'data/train'
-TEST_DATA_PATH = 'data/test'
-MODEL_PATH = 'model/weights.h5'
+import os
 
-LABELS = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '+']
-INPUT_SHAPE = (64, 64)
-OUTPUT_SHAPE = len(LABELS)
+ROOT_FOLDER = os.path.join(os.path.realpath(os.path.dirname(__file__)))
+
+DATA_FOLDER = f'{ROOT_FOLDER}/data'
+TRAIN_DATA_PATH = f'{DATA_FOLDER}/train'
+TEST_DATA_PATH = f'{DATA_FOLDER}/test'
+CHECKPOINT_PATH = f'{ROOT_FOLDER}/checkpoint/model.h5'
+
+LABELS = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9']
+INPUT_SHAPE = (150, 50, 1)
+OUTPUT_SIZE = len(LABELS)

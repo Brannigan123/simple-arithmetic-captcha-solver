@@ -1,55 +1,89 @@
 #!/usr/bin/env python3
 
 from keras.utils import to_categorical
-from const import LABELS, MODEL_PATH, TRAIN_DATA_PATH
-from model import get_model
+from keras.callbacks import ModelCheckpoint, ReduceLROnPlateau
 import numpy as np
-import keras
 import glob
 import cv2
+import re
+import os
+import random
 
+from prepare_image import prepare_image
+from const import LABELS, CHECKPOINT_PATH, TRAIN_DATA_PATH
+from model import get_model
 
 def load_train_data():
     """
-    It loads all the images in the training data directory, converts them to grayscale, and returns them
+    It loads all the images in the training data directory, and returns them
     as a numpy array
     :return: the training data and the training labels.
     """
     x_train = []
-    y_train = []
-    for dir in glob.glob(f'{TRAIN_DATA_PATH}/**'):
-        label = dir.split('/')[-1]
-        label_idx = LABELS.index(label)
-        for imgfile in glob.glob(f'{dir}/*'):
-            x_train.append(
-                np.array(cv2.imread(imgfile, 0), dtype=np.float32))
-            y_train.append(np.array(label_idx, dtype=np.int8))
-    return np.array(x_train)/255, to_categorical(np.array(y_train))
+    y1_train = []
+    y2_train = []
+    files = glob.glob(f'{TRAIN_DATA_PATH}/*')
+    random.shuffle(files)
+    for path in files:
+        expr = re.split('\[|\]', path)[-2].split(' ')
+        label1_idx, label2_idx = LABELS.index(expr[0]), LABELS.index(expr[2])
+        x_train.append(prepare_image(cv2.imread(path, cv2.IMREAD_GRAYSCALE)))
+        y1_train.append(np.array(label1_idx, dtype=np.int8))
+        y2_train.append(np.array(label2_idx, dtype=np.int8))
+    return np.array(x_train), [to_categorical(np.array(y1_train)), to_categorical(np.array(y2_train))]
 
 
-def train(x_train, y_train, x_test, y_test, batch_size=16, epochs=50):
+def train(x_train, y_train,  batch_size=32, epochs=50):
     """
     We create a model, compile it, and then train it.
 
     :param x_train: The training data
     :param y_train: The training labels
-    :param x_test: The test data
-    :param y_test: The test labels
-    :param batch_size: The number of samples per gradient update, defaults to 16 (optional)
-    :param epochs: The number of times the model will cycle through the data, defaults to 30 (optional)
+    :param batch_size: The number of samples per gradient update, defaults to 64 (optional)
+    :param epochs: The number of times the model will cycle through the data, defaults to 50 (optional)
     :return: The model.fit() function returns a History object. Its History.history attribute is a
     record of training loss values and metrics values at successive epochs, as well as validation loss
     values and validation metrics values (if applicable).
     """
     model = get_model()
-    model.compile(loss='categorical_crossentropy',
-                  optimizer='adam', metrics=['accuracy'])
-    checkpoint = keras.callbacks.ModelCheckpoint(
-        MODEL_PATH, save_best_only=True)
-    return model.fit(x_train, y_train, validation_data=(
-        x_test, y_test), epochs=epochs, batch_size=batch_size, callbacks=[checkpoint], verbose=1, use_multiprocessing=True)
+    model.compile(
+        optimizer='adam',
+        loss={
+            'digit1': 'categorical_crossentropy',
+            'digit2': 'categorical_crossentropy'
+        },
+        metrics={
+            'digit1': 'accuracy',
+            'digit2': 'accuracy'
+        }
+    )
+
+    callbacks = [
+        ReduceLROnPlateau(
+            monitor='val_loss',
+            patience=3,
+            verbose=1,
+            factor=0.5,
+            min_lr=0.00001
+        ),
+        ModelCheckpoint(
+            CHECKPOINT_PATH, save_best_only=True, monitor='val_loss'
+        )
+    ]
+
+    return model.fit(
+        x_train, [y_train[0], y_train[1]],
+        validation_split=0.2,
+        batch_size=batch_size,
+        epochs=epochs,
+        shuffle=True,
+        callbacks=callbacks,
+        verbose=1,
+        use_multiprocessing=True
+    )
 
 
 if __name__ == '__main__':
+    os.makedirs(os.path.dirname(CHECKPOINT_PATH), exist_ok=True)
     x, y = load_train_data()
-    train(x, y, x, y)
+    train(x, y, batch_size=256)
