@@ -1,0 +1,19 @@
+{
+  "name": "data",
+  "type": "module",
+  "version": "1.0.0",
+  "description": "",
+  "main": "generate.js",
+  "directories": {
+    "test": "test"
+  },
+  "scripts": {
+    "generate": "node generate.js"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "is-svg": "^4.3.2",
+    "svg-captcha-fixed": "^1.5.2"
+  }
+}
