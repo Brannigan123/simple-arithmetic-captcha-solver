@@ -1,12 +1,14 @@
 #!/usr/bin/env python3
 
+import os 
+#os.environ["TF_CPP_MIN_LOG_LEVEL"] = '3'
+
 from keras.utils import to_categorical
 from keras.callbacks import ModelCheckpoint, ReduceLROnPlateau
 import numpy as np
 import glob
 import cv2
 import re
-import os
 import random
 
 from prepare_image import prepare_image
